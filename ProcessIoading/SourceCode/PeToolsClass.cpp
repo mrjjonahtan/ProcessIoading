@@ -1,5 +1,6 @@
 #include "../stdafx.h"
-#include "../Include/petoolsclass.h"
+#include "../Include/PeToolsClass.h"
+
 
 PeToolsClass::PeToolsClass()
 {
@@ -10,7 +11,7 @@ PeToolsClass::~PeToolsClass()
 {
 }
 
-void PeToolsClass::getValue(unsigned char *pointerValue, int number, wchar_t *tvlue)
+void PeToolsClass::getValue(BYTE *pointerValue, int number, TCHAR *tvlue)
 {
 	char *vaby = NULL;
 	vaby = (char*)malloc(0x200);
@@ -35,7 +36,7 @@ void PeToolsClass::getValue(unsigned char *pointerValue, int number, wchar_t *tv
 	}
 }
 
-unsigned long PeToolsClass::getDWValue(unsigned char *pointerValue, int number)
+DWORD PeToolsClass::getDWValue(BYTE *pointerValue, int number)
 {
 	DWORD revalue = 0;
 	for (int i = (number - 1); i >= 0; i--)
@@ -45,28 +46,28 @@ unsigned long PeToolsClass::getDWValue(unsigned char *pointerValue, int number)
 	return revalue;
 }
 
-unsigned long PeToolsClass::getOptionSizeValue(unsigned char *pointerValue)
+DWORD PeToolsClass::getOptionSizeValue(BYTE *pointerValue)
 {
-	unsigned long revalue = 0;
+	DWORD revalue = 0;
 	revalue = getDWValue((pointerValue + getPELocation(pointerValue) + 4 + 16), 2);
 	return revalue;
 }
 
-unsigned long PeToolsClass::getPELocation(unsigned char *pointerValue)
+DWORD PeToolsClass::getPELocation(BYTE *pointerValue)
 {
-	unsigned long revalue = 0;
+	DWORD revalue = 0;
 	revalue = getDWValue((pointerValue + 60), 4);
 	return revalue;
 }
 
-unsigned long PeToolsClass::getSectionNumber(unsigned char *pointerValue)
+DWORD PeToolsClass::getSectionNumber(BYTE *pointerValue)
 {
-	unsigned long revalue = 0;
+	DWORD revalue = 0;
 	revalue = getDWValue((pointerValue + getPELocation(pointerValue) + 4 + 2), 2);
 	return revalue;
 }
 
-void PeToolsClass::getCharPointer(unsigned char *pointerValue, wchar_t *tvlue, int max)
+void PeToolsClass::getCharPointer(BYTE *pointerValue, TCHAR *tvlue, int max)
 {
 	if (max == 0)
 	{
@@ -85,30 +86,30 @@ void PeToolsClass::getCharPointer(unsigned char *pointerValue, wchar_t *tvlue, i
 
 }
 
-unsigned long PeToolsClass::rvaTofoa(unsigned char *pointerValue, unsigned long RVA)
+DWORD PeToolsClass::rvaTofoa(BYTE *pointerValue, DWORD RVA)
 {
 	struct mSection {
 		union
 		{
-			unsigned long PhysicalAddress;
-			unsigned long virtualSize;
+			DWORD PhysicalAddress;
+			DWORD virtualSize;
 		} Misc;
-		unsigned long virtualAddress;
-		unsigned long sizeOfRawData;
-		unsigned long pointertorawdata;
+		DWORD virtualAddress;
+		DWORD sizeOfRawData;
+		DWORD pointertorawdata;
 	};
-	unsigned long rtf = 0;
-	unsigned long pelocat = getPELocation(pointerValue);
-	unsigned long sizeOfHeaders = getDWValue((pointerValue + pelocat + 24 + 60), 4);
+	DWORD rtf = 0;
+	DWORD pelocat = getPELocation(pointerValue);
+	DWORD sizeOfHeaders = getDWValue((pointerValue + pelocat + 24 + 60), 4);
 	if (RVA > sizeOfHeaders)
 	{
-		unsigned long optionSize = getOptionSizeValue(pointerValue);
+		DWORD optionSize = getOptionSizeValue(pointerValue);
 		int snumber = getSectionNumber(pointerValue);
 		mSection section[10] = { 0 };
 
 		for (int i = 0; i < snumber; i++)
 		{
-			unsigned long locat = i * 40;
+			DWORD locat = i * 40;
 			section[i].Misc.virtualSize = getDWValue((pointerValue + pelocat + optionSize + 24 + 8 + locat), 4);
 			section[i].virtualAddress = getDWValue((pointerValue + pelocat + optionSize + 24 + 12 + locat), 4);
 			section[i].sizeOfRawData = getDWValue((pointerValue + pelocat + optionSize + 24 + 16 + locat), 4);
@@ -130,7 +131,7 @@ unsigned long PeToolsClass::rvaTofoa(unsigned char *pointerValue, unsigned long 
 	return rtf;
 }
 
-unsigned long PeToolsClass::foaTorva(unsigned char *pointerValue, unsigned long FOA)
+DWORD PeToolsClass::foaTorva(BYTE *pointerValue, DWORD FOA)
 {
 	struct mSection {
 		union
@@ -167,7 +168,7 @@ unsigned long PeToolsClass::foaTorva(unsigned char *pointerValue, unsigned long 
 	return ftr;
 }
 
-unsigned long PeToolsClass::getAlignData(unsigned long data, unsigned long alig)
+DWORD PeToolsClass::getAlignData(DWORD data, DWORD alig)
 {
 	DWORD revalue = 0;
 	revalue = data % alig;
@@ -182,9 +183,34 @@ unsigned long PeToolsClass::getAlignData(unsigned long data, unsigned long alig)
 	return revalue;
 }
 
-unsigned long PeToolsClass::getApplicationSize(unsigned char *pointerValue)
+DWORD PeToolsClass::getApplicationSize(BYTE *pointerValue)
 {
-	unsigned long pelocat = getPELocation(pointerValue);
-	unsigned long reValue = getDWValue((pointerValue + pelocat + 4), 2);
+	DWORD pelocat = getPELocation(pointerValue);
+	DWORD reValue = getDWValue((pointerValue + pelocat + 4), 2);
 	return reValue;
+}
+
+void PeToolsClass::putData(BYTE *pointer, DWORD value, DWORD number)
+{
+	switch (number)
+	{
+	case 1:
+		*pointer = (value << 24) >> 24;
+		break;
+	case 2:
+		*pointer = (value << 24) >> 24;
+		*(pointer + 1) = (value << 16) >> 24;
+		break;
+	case 3:
+		*pointer = (value << 24) >> 24;
+		*(pointer + 1) = (value << 16) >> 24;
+		*(pointer + 2) = (value << 8) >> 24;
+		break;
+	case 4:
+		*pointer = (value << 24) >> 24;
+		*(pointer + 1) = (value << 16) >> 24;
+		*(pointer + 2) = (value << 8) >> 24;
+		*(pointer + 3) = value >> 24;
+		break;
+	}
 }
